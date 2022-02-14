@@ -3,7 +3,7 @@
 ## To create and run the virtual machines, you have to run in a shell in ops/challenge-ansible directory
     ./init.sh
 
-### I had issues on virtualbox to make unattended installation directly frombash with vboxmanage, so I decided to use vagrant to make it possible
+### I had issues on virtualbox to make unattended installation directly from bash with vboxmanage, so I decided to use vagrant to make it possible
 
 ```
 .

@@ -1,88 +1,97 @@
 ---
 
 - name: installation_wordpress
-  hosts: ubuntu-web-server
+  hosts: ubuntu_web_server
   become: yes
 
   tasks:
-    - name: Include wordpress vars
-      include_vars:
-        dir: ../../group_vars/
-      tags: wordpress
-
-    - name: update apt
-      shell: "apt update"
-      tags: wordpress
-
     - name: Install dependencies
-      shell: "apt install apache2 
-                                  ghostscript \
-                                  libapache2-mod-php \
-                                  mysql-server \
-                                  php \
-                                  php-bcmath \
-                                  php-curl \
-                                  php-imagick \
-                                  php-intl \
-                                  php-json \
-                                  php-mbstring \
-                                  php-mysql \
-                                  php-xml \
-                                  php-zip -y"
+      apt:
+        pkg: "{{ wordpress_pkg }}"
+        state: latest
+        update_cache: true
       tags: wordpress
 
     - name: Prepare Wordpress install
-      shell: "mkdir -p /srv/www && chown www-data: /srv/www"
-      tags: wordpress
-            
-    - name: Install Wordpress
-      shell: "curl {{ wordpress_archive_url }} | tar zx -C /srv/www"
+      file:
+        path: /srv/www/
+        state: directory
+        owner: www-data
+        group: www-data
       tags: wordpress
 
+    - name: Download wordpress
+      get_url:
+        url: "{{ wordpress_config.archive_url }}"
+        dest: /srv/www
+
+    - name: Extract Wordpress package
+      unarchive:
+        src: /srv/www/wordpress-{{ wordpress_version }}.tar.gz
+        dest: /srv/www/
+        remote_src: yes
+      tags: wordpress
+
+    #Var added to the conf
     - name: Config apache2
-      template: src=../../templates/wordpress/wordpress.conf dest={{ wordpress_config_apache_path }}
+      template: 
+        src: ../../templates/wordpress/wordpress.conf 
+        dest: "{{ wordpress_config.apache_path }}"
       tags: wordpress
 
-    - name: Enable wordpress
-      shell: "sudo a2ensite wordpress"
-      tags: wordpress
+    - name: set symlink in sites-enabled
+      file:
+        src: "{{ wordpress_config.apache_path }}"
+        dest: "/etc/apache2/sites-enabled/wordpress.conf"
+        state: link
 
     - name: Enable Url
-      shell: "sudo a2enmod rewrite"
+      apache2_module:
+        state: present
+        name: rewrite
       tags: wordpress
 
     - name: Disable default "it works" site
-      shell: "a2dissite 000-default"
+      file:
+        path: "{{ item }}"
+        state: absent
+      with_items:
+        - /etc/apache2/sites-enabled/000-default.conf
+        - /etc/apache2/sites-available/000-default.conf
       tags: wordpress
 
     - name: change name
-      shell: "mv /srv/www/wordpress/wp-config-sample.php {{ wordpress_config_db_path }}"
+      copy:
+        src: /srv/www/wordpress/wp-config-sample.php
+        dest: "{{ wordpress_config.mysql_path }}"
+        remote_src: true
 
     - name: Config database
-      shell: "sed -i 's/database_name_here/{{ wordpress_db_database }}/' {{ wordpress_config_db_path }}; \
-              sed -i 's/username_here/{{ wordpress_db_user }}/' /{{ wordpress_config_db_path }}; \
-              sed -i 's/password_here/{{ wordpress_db_password }}/' {{ wordpress_config_db_path }}; \
-              sed -i 's/localhost/{{ wordpress_db_server_ip }}/' {{ wordpress_config_db_path }};"
-    
-    - name: Config authent
-      shell: "echo auth"
-    
-    - name: Change rights
-      shell: "chmod 644 {{ wordpress_config_db_path }}"
-    
+      replace:
+        path: "{{ wordpress_config.mysql_path }}"
+        regexp: "{{ item.From }}"
+        replace: "{{ item.To }}"
+      with_items:
+        - { From: database_name_here, To: "{{ wordpress_db.database }}" }
+        - { From: username_here, To: "{{ wordpress_db.username }}" }
+        - { From: password_here, To: "{{ wordpress_db.password }}"}
+        - { From: localhost, To: "{{ wordpress_db.server_ip }}" }
+
+    #This is not a miss, the handlers alone is not enough
     - name: Reload apache2
-      shell: "service apache2 reload"
+      service:
+        name: apache2
+        state: restarted
       tags: wordpress
 
-    - name: get wp-cli
-      shell: "curl -O {{ wp_cli_url }} ;\
-              chmod +x wp-cli.phar ;\
-              mv wp-cli.phar /usr/local/bin/wp-cli"
-
-    - name: wp-cli setup
-      become: no
-      shell: "wp-cli core download; \
-             cd /srv/www/wordpress && wp-cli core install --url=IWD-CHALLENGE --title=IWD-CHALLENGE --admin_user={{ wordpress_admin_user }} --admin_password={{ wordpress_admin_password }} --admin_email={{ wordpress_admin_email }}"
-
+    - name: Change rights
+      file:
+        path: "{{ wordpress_config.mysql_path }}"
+        mode: 644
     
-    
+  handlers:
+    - name: Reload apache2
+      service:
+        name: apache2
+        state: restarted
+      tags: wordpress  

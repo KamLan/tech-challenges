@@ -1,6 +1,7 @@
 #!/bin/bash   
     origin=$(pwd)
     export ANSIBLE_CONFIG=$PWD/ansible/ansible.cfg
+    export ANSIBLE_HOST_KEY_CHECKING=False
 
     # VM Creation and installation
     cd ./ubuntu-web-server/ && vagrant up && cd $origin
@@ -11,6 +12,7 @@
     ssh-keygen -f ~/.ssh/known_hosts -R "192.168.10.20"
     
     #We get the ssh key
+    mkdir ./ansible/host_vars/.ssh
     cp ./ubuntu-web-server/.vagrant/machines/default/virtualbox/private_key ./ansible/host_vars/.ssh/id_rsa_app
     cp ./ubuntu-db-server/.vagrant/machines/default/virtualbox/private_key ./ansible/host_vars/.ssh/id_rsa_db
     

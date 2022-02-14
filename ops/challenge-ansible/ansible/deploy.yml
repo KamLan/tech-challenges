@@ -1,5 +1,14 @@
 ---
 
-  - import_playbook: playbook/mysql/install.yml
-  - import_playbook: playbook/wordpress/install.yml
+- name: deploy_wordpress & mysql
+  hosts: all
+  tasks:
+    - include_vars: 
+        dir: group_vars/
+  
+- name: Import mysql
+  import_playbook: playbook/mysql/install.yml
+
+- name: import wordpress 
+  import_playbook: playbook/wordpress/install.yml
   
