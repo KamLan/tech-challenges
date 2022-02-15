@@ -1,0 +1,3 @@
+---
+#IMPROVEMENT manage via ansible-vault
+mysql_root_password: "root"

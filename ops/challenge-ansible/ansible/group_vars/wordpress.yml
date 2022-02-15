@@ -1,0 +1,41 @@
+---
+#wordpress packages
+wordpress_pkg: [ ghostscript, libapache2-mod-php, mysql-server, php, php-bcmath, php-curl, php-imagick, php-intl, php-json, php-mbstring, php-mysql, php-xml, php-zip ]
+wordpress_version: "5.9"
+
+#wordpress config
+wordpress_config:
+  file_root: "/srv/www/wordpress"
+  archive_url: "https://wordpress.org/wordpress-{{ wordpress_version }}.tar.gz"
+  apache_path: "/etc/apache2/sites-available/wordpress.conf"
+  mysql_path: "/srv/www/wordpress/wp-config.php"
+
+#IMPROVEMENT manage via ansible-vault
+#wordpress DB
+wordpress_db:
+  server_ip: "{{ hostvars.ubuntu_db_server.ansible_host }}"
+  username: "wordpress"
+  password: "W03dpr3ss!$"
+  database: "wordpress"
+
+#IMPROVEMENT manage via ansible-vault
+#wordpress sec auth
+wordpress_security:
+  auth_key: "P~KeT.Vt4XjUzSac,e*~$PoDr`?Bteo&)}os?ya|u7`|<,OlPpw&F}u8/J6RrYy}"
+  secure_auth_key: "|TJs ?eXD_P_ZoJugQ-O-:S2pt 4TZ8f(4xJX30=j2<ADAM2LORG%&qFS_mnDq]}"
+  logged_in_key: "Qs<6NOO(P;KKR(2#g$$}+W7(8 y]#3+_v)0|*DzCt(9gMLHJ<N*ANX*~%BQ[]>Mi"
+  nonce_key: "np<3[~z`53g1oa@~:7Ioy+29sXd-Q>(;:1*_hu{95|Fb2Y+@iki@{Zn@Rk|jE7rR"
+  auth_salt: "]lG<XD%1*D*5OdTIa&kyo8KF|/3(P?+k(5*-EYTqeA;INcG|6XRG13$%RbvD95U-"
+  secure_auth_salt: "Idm!dZ)}A-*Ke}q9M:.UuymC,T6U1Re-nl_zl||k=|6Ieh7096K0_TIHGBB~++;+"
+  logged_in_salt: "L<zaNA~l-OUv(.|gS-r4/md@Lx/oZc=I/YG,O5r6jP 0GJ+B=Bz%-qs~*/I^soYk"
+  nonce_salt: "Vm:+6060Y:#(n~|B@)#-tun(+O6LnXb]#%$%`(cpFs_4zqvAC%Dn>9o2O-%i3{6="
+
+#wp-cli
+wp_cli_url: "https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar"
+
+#IMPROVEMENT manage via ansible-vault
+#wordpress admin
+wordpress_admin:
+  username: admin_wp
+  password: 4dmin_wp$ù
+  email: wordpress@admin.com

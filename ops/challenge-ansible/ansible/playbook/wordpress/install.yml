@@ -1,0 +1,97 @@
+---
+
+- name: installation_wordpress
+  hosts: ubuntu_web_server
+  become: yes
+
+  tasks:
+    - name: Install dependencies
+      apt:
+        pkg: "{{ wordpress_pkg }}"
+        state: latest
+        update_cache: true
+      tags: wordpress
+
+    - name: Prepare Wordpress install
+      file:
+        path: /srv/www/
+        state: directory
+        owner: www-data
+        group: www-data
+      tags: wordpress
+
+    - name: Download wordpress
+      get_url:
+        url: "{{ wordpress_config.archive_url }}"
+        dest: /srv/www
+
+    - name: Extract Wordpress package
+      unarchive:
+        src: /srv/www/wordpress-{{ wordpress_version }}.tar.gz
+        dest: /srv/www/
+        remote_src: yes
+      tags: wordpress
+
+    #Var added to the conf
+    - name: Config apache2
+      template: 
+        src: ../../templates/wordpress/wordpress.conf 
+        dest: "{{ wordpress_config.apache_path }}"
+      tags: wordpress
+
+    - name: set symlink in sites-enabled
+      file:
+        src: "{{ wordpress_config.apache_path }}"
+        dest: "/etc/apache2/sites-enabled/wordpress.conf"
+        state: link
+
+    - name: Enable Url
+      apache2_module:
+        state: present
+        name: rewrite
+      tags: wordpress
+
+    - name: Disable default "it works" site
+      file:
+        path: "{{ item }}"
+        state: absent
+      with_items:
+        - /etc/apache2/sites-enabled/000-default.conf
+        - /etc/apache2/sites-available/000-default.conf
+      tags: wordpress
+
+    - name: change name
+      copy:
+        src: /srv/www/wordpress/wp-config-sample.php
+        dest: "{{ wordpress_config.mysql_path }}"
+        remote_src: true
+
+    - name: Config database
+      replace:
+        path: "{{ wordpress_config.mysql_path }}"
+        regexp: "{{ item.From }}"
+        replace: "{{ item.To }}"
+      with_items:
+        - { From: database_name_here, To: "{{ wordpress_db.database }}" }
+        - { From: username_here, To: "{{ wordpress_db.username }}" }
+        - { From: password_here, To: "{{ wordpress_db.password }}"}
+        - { From: localhost, To: "{{ wordpress_db.server_ip }}" }
+
+    #This is not a miss, the handlers alone is not enough
+    - name: Reload apache2
+      service:
+        name: apache2
+        state: restarted
+      tags: wordpress
+
+    - name: Change rights
+      file:
+        path: "{{ wordpress_config.mysql_path }}"
+        mode: 644
+    
+  handlers:
+    - name: Reload apache2
+      service:
+        name: apache2
+        state: restarted
+      tags: wordpress  

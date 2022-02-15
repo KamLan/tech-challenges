@@ -1,0 +1,48 @@
+---
+
+- name: installation_mysql
+  hosts: ubuntu_db_server
+  become: yes
+  
+  tasks:
+    - name: Install mysql
+      apt:
+        name: "mysql-server"
+        state: latest
+        update_cache: true
+      tags: mysql
+
+    - name: templating
+      template:
+        src: ./scripts/newDb.sql
+        dest: ./newDb.sql
+
+    - name: Setting up Wordpress Database
+      shell: mysql -u root < ./newDb.sql
+      tags: mysql
+
+    - name: Permitting distant access to db
+      ansible.builtin.replace:
+        path: /etc/mysql/mysql.conf.d/mysqld.cnf
+        regexp: "127.0.0.1"
+        replace: "0.0.0.0"
+
+    #This is not a miss, it seems mysql need more of one reboot
+    - name: first restart mysql 
+      service:
+        name: mysql
+        state: restarted
+      tags: mysql
+        
+    - name: firewall setup
+      ufw:
+        name: mysql
+        policy: allow
+      tags: mysql
+    
+  handlers:
+    - name: restart mysql
+      service:
+        name: mysql
+        state: restarted
+      tags: mysql
